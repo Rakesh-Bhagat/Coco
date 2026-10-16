@@ -1,22 +1,32 @@
 import type { ProviderId } from "./registry.js";
 
-export type Message = {
-  role: "assistant" | "user" | "system";
-  content: string;
-};
+export type ContentBlock =
+  | { type: "text"; content: string }
+  | { type: "tool_use"; id: string; name: string; input: unknown }
+  | { type: "tool_result"; toolCallId: string; output: unknown };
 
+export type Message = {
+  role: "assistant" | "user" | "tool";
+  content: ContentBlock[];
+};
+export type StreamEvent =
+  | { type: "text_delta"; text: string }
+  | { type: "done"; response: LLMResponse };
+
+export type Usage = { inputTokens: number; outputTokens: number };
 export type Conversation = Message[];
+
 export type LLMRequest = {
   messages: Conversation;
   model: string;
+  system?: string;
   maxTokens?: number;
 };
 
-export type Usage = { inputTokens: number; outputTokens: number };
 export type LLMResponse = {
   text: string;
   usage?: Usage;
-  stopReason?: string | undefined;
+  stopReason?: "end" | "tool_use" | "max_tokens" | "other" | undefined;
 };
 
 export type Model = {
@@ -37,4 +47,15 @@ export interface Provider {
   displayName: string;
   listModels: () => Promise<Model[]>;
   getResponse: (request: LLMRequest) => Promise<LLMResponse>;
+  getStreamResponse: (request: LLMRequest) => AsyncIterable<StreamEvent>;
+}
+
+export interface AgentInterface {
+  id: ProviderId;
+  client: Provider;
+  model: Model;
+  run: (input: string) => Promise<void>;
+  getModel: () => Promise<Model[]>;
+  setModel: (model: Model) => Promise<void>;
+  setProvider: (provider: ProviderId) => void;
 }

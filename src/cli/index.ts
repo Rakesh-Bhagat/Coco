@@ -1,9 +1,7 @@
 import { stdin, stdout } from "process";
 import readline from "readline/promises";
 import { config } from "dotenv";
-import { createProvider } from "../agent/factory.js";
-import { registry } from "../agent/registry.js";
-import type { Conversation } from "../agent/types.js";
+import { Agent } from "../agent/agent.js";
 config();
 
 const rl = readline.createInterface({
@@ -11,35 +9,26 @@ const rl = readline.createInterface({
   output: stdout,
 });
 
-const client = createProvider("groq");
-let model = registry.groq.defaultModel;
+const client = new Agent("groq", {
+  id: "qwen/qwen3.8-27b",
+  displayName: "qwen/qwen3.8-27b",
+});
 
 async function main() {
-  let conversation: Conversation = [];
   try {
     while (true) {
       const input = await rl.question("You: ");
-      if (input!.trim().toLowerCase() === "exit") {
-        break;
-      }
-      conversation.push({ role: "user", content: input });
-      const result = await client.getResponse({
-        messages: conversation,
-        model,
-      });
-      conversation.push({ role: "assistant", content: result.text });
-      console.log("assistant: " + result.text);
+      if (input.trim().toLowerCase() === "exit") break;
+      await client.run(input);
     }
-  } catch (error) {
-    console.log("intenal error" + error);
+  } catch (err) {
+    console.log("internal error " + err);
   } finally {
     rl.close();
   }
 }
-
+main();
 rl.on("SIGINT", () => {
   console.log("exit");
   rl.close();
 });
-
-main();
