@@ -9,9 +9,9 @@ const rl = readline.createInterface({
   output: stdout,
 });
 
-const client = new Agent("groq", {
-  id: "qwen/qwen3.8-27b",
-  displayName: "qwen/qwen3.8-27b",
+const groq = new Agent("anthropic", {
+  id: "claude-haiku-5-5",
+  displayName: "claude",
 });
 
 async function main() {
@@ -19,7 +19,7 @@ async function main() {
     while (true) {
       const input = await rl.question("You: ");
       if (input.trim().toLowerCase() === "exit") break;
-      await client.run(input);
+      await groq.run(input);
     }
   } catch (err) {
     console.log("internal error " + err);
@@ -29,6 +29,6 @@ async function main() {
 }
 main();
 rl.on("SIGINT", () => {
-  console.log("exit");
+  console.log("Adios!");
   rl.close();
 });

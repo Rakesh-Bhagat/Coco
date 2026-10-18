@@ -11,6 +11,7 @@ import type {
 import type { ProviderId } from "../registry.js";
 import { mapStopReason } from "../utils/mapStopReason.js";
 import { toOpenAIMessages } from "../utils/toOpenAIMessages.js";
+import { toOpenAITool } from "../utils/toOpenAITool.js";
 
 export class OpenAICompatibleLLM implements Provider {
   id: ProviderId;
@@ -26,11 +27,12 @@ export class OpenAICompatibleLLM implements Provider {
   }
   async getResponse(request: LLMRequest): Promise<LLMResponse> {
     const response = await this.client.chat.completions.create({
-      messages: toOpenAIMessages(request.messages),
+      messages: toOpenAIMessages(request.messages, request.system),
       model: request.model,
       ...(request.maxTokens !== undefined && {
         max_completion_tokens: request.maxTokens,
       }),
+      ...toOpenAITool(request.tools),
     });
     const output = {
       text: response.choices[0]?.message.content || "",
@@ -52,22 +54,40 @@ export class OpenAICompatibleLLM implements Provider {
   }
   async *getStreamResponse(request: LLMRequest): AsyncGenerator<StreamEvent> {
     const stream = await this.client.chat.completions.create({
-      messages: toOpenAIMessages(request.messages),
+      messages: toOpenAIMessages(request.messages, request.system),
       stream: true,
       model: request.model,
       stream_options: { include_usage: true },
       ...(request.maxTokens !== undefined && {
         max_completion_tokens: request.maxTokens,
       }),
+      ...toOpenAITool(request.tools),
     });
     let fullText = "";
     let finishReason: string | null | undefined;
     let usageCost: Usage | undefined;
+    const pending = new Map<
+      number,
+      { id: string; name: string; args: string }
+    >();
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta.content;
       if (typeof content === "string") {
         fullText += content;
         yield { type: "text_delta", text: content };
+      }
+      for (const tc of chunk.choices[0]?.delta.tool_calls ?? []) {
+        const cur = pending.get(tc.index) ?? { id: "", name: "", args: "" };
+        if (tc.id) {
+          cur.id = tc.id;
+        }
+        if (tc.function?.name) {
+          cur.name = tc.function.name;
+        }
+        if (tc.function?.arguments) {
+          cur.args += tc.function.arguments;
+        }
+        pending.set(tc.index, cur);
       }
       if (chunk.usage) {
         usageCost = {
@@ -79,12 +99,26 @@ export class OpenAICompatibleLLM implements Provider {
         finishReason = chunk.choices[0]?.finish_reason;
       }
     }
+    const toolCalls = [...pending.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, c]) => {
+        let input: unknown = {};
+        try {
+          input = c.args.trim() ? JSON.parse(c.args) : {};
+        } catch {
+          input = { __parseError: c.args };
+        }
+        return { id: c.id, name: c.name, input };
+      });
+
     yield {
       type: "done",
       response: {
         text: fullText,
         ...(usageCost && { usage: usageCost }),
-        stopReason: mapStopReason(finishReason),
+        ...(toolCalls.length > 0 && { toolCalls }),
+        stopReason:
+          toolCalls.length > 0 ? "tool_use" : mapStopReason(finishReason),
       },
     };
   }

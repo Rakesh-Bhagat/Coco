@@ -1,5 +1,11 @@
 import type { ProviderId } from "./registry.js";
 
+export type JSONSchema = {
+  type: "object";
+  properties: Record<string, unknown>;
+  required?: string[];
+};
+
 export type ContentBlock =
   | { type: "text"; content: string }
   | { type: "tool_use"; id: string; name: string; input: unknown }
@@ -9,6 +15,17 @@ export type Message = {
   role: "assistant" | "user" | "tool";
   content: ContentBlock[];
 };
+
+export type Tool<I = unknown> = {
+  name: string;
+  label: string;
+  description: string;
+  input: JSONSchema;
+  execute: (input: I) => Promise<string>;
+};
+
+export type ToolDefinition = Pick<Tool, "name" | "description" | "input">;
+
 export type StreamEvent =
   | { type: "text_delta"; text: string }
   | { type: "done"; response: LLMResponse };
@@ -21,10 +38,12 @@ export type LLMRequest = {
   model: string;
   system?: string;
   maxTokens?: number;
+  tools?: ToolDefinition[];
 };
 
 export type LLMResponse = {
   text: string;
+  toolCalls?: { id: string; name: string; input: unknown }[];
   usage?: Usage;
   stopReason?: "end" | "tool_use" | "max_tokens" | "other" | undefined;
 };

@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "dotenv": "^18.0.8",
-    "openai": "^7.34.0"
+    "markdansi": "^0.3.5",
+    "openai": "^7.34.0",
+    "shiki": "^4.5.0"
   }
 }
