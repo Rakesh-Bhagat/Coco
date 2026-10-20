@@ -14,6 +14,7 @@ export const registry = {
     apiKeyEnv: "ANTHROPIC_API_KEY",
     kind: "openai-compatible",
     defaultModel: "claude-haiku-5-5",
+    headers: { "anthropic-version": "2023-06-01" },
   },
 } satisfies Record<string, ProviderConfig>;
 

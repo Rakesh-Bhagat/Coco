@@ -23,6 +23,7 @@ export class OpenAICompatibleLLM implements Provider {
     this.client = new OpenAI({
       baseURL: config.baseURL,
       apiKey: apiKey,
+      ...(config.headers && { defaultHeaders: config.headers }),
     });
   }
   async getResponse(request: LLMRequest): Promise<LLMResponse> {
@@ -53,16 +54,20 @@ export class OpenAICompatibleLLM implements Provider {
     return models;
   }
   async *getStreamResponse(request: LLMRequest): AsyncGenerator<StreamEvent> {
-    const stream = await this.client.chat.completions.create({
-      messages: toOpenAIMessages(request.messages, request.system),
-      stream: true,
-      model: request.model,
-      stream_options: { include_usage: true },
-      ...(request.maxTokens !== undefined && {
-        max_completion_tokens: request.maxTokens,
-      }),
-      ...toOpenAITool(request.tools),
-    });
+    const stream = await this.client.chat.completions.create(
+      {
+        messages: toOpenAIMessages(request.messages, request.system),
+        stream: true,
+        model: request.model,
+        stream_options: { include_usage: true },
+        ...(request.maxTokens !== undefined && {
+          max_completion_tokens: request.maxTokens,
+        }),
+        ...toOpenAITool(request.tools),
+      },
+      // aborting the signal closes the HTTP stream, so the loop below throws
+      { signal: request.signal },
+    );
     let fullText = "";
     let finishReason: string | null | undefined;
     let usageCost: Usage | undefined;

@@ -14,6 +14,8 @@ const LANGS: BundledLanguage[] = [
   "markdown",
   "html",
   "css",
+  "cpp",
+  "c",
 ];
 const SUPPORTED = new Set<string>(LANGS);
 const ALIASES: Record<string, string> = {
@@ -25,6 +27,9 @@ const ALIASES: Record<string, string> = {
   py: "python",
   yml: "yaml",
   md: "markdown",
+  cpp: "cpp",
+  cplusplus: "cpp",
+  cc: "cpp",
 };
 
 // Top-level await: the highlighter loads once at startup.

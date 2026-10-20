@@ -21,8 +21,22 @@ export type Tool<I = unknown> = {
   label: string;
   description: string;
   input: JSONSchema;
-  execute: (input: I) => Promise<string>;
+  /** true = always ask. A function decides per call. Omit for safe tools. */
+  requiresApproval?: boolean | ((input: I) => boolean);
+  /** One-line summary shown when the tool is called, e.g. the path or command. */
+  title?: (input: I) => string;
+  /** Extra detail shown in the approval prompt (e.g. a diff). Omit if the title already says it all. Throwing skips the prompt and is reported to the model. */
+  describeCall?: (input: I) => string | Promise<string>;
+  execute: (input: I, signal?: AbortSignal) => Promise<string>;
 };
+
+export type ApprovalDecision = "yes" | "no" | "always";
+export type ApprovalHandler = (req: {
+  tool: string;
+  label: string;
+  summary: string;
+  signal?: AbortSignal | undefined;
+}) => Promise<ApprovalDecision>;
 
 export type ToolDefinition = Pick<Tool, "name" | "description" | "input">;
 
@@ -39,6 +53,7 @@ export type LLMRequest = {
   system?: string;
   maxTokens?: number;
   tools?: ToolDefinition[];
+  signal?: AbortSignal | undefined;
 };
 
 export type LLMResponse = {
@@ -59,6 +74,7 @@ export interface ProviderConfig {
   apiKeyEnv: string;
   defaultModel: string;
   kind: "openai-compatible" | "anthropic";
+  headers?: Record<string, string>;
 }
 
 export interface Provider {
@@ -73,7 +89,7 @@ export interface AgentInterface {
   id: ProviderId;
   client: Provider;
   model: Model;
-  run: (input: string) => Promise<void>;
+  run: (input: string, signal?: AbortSignal) => Promise<void>;
   getModel: () => Promise<Model[]>;
   setModel: (model: Model) => Promise<void>;
   setProvider: (provider: ProviderId) => void;
