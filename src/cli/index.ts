@@ -4,6 +4,7 @@ import { config } from "dotenv";
 import { Agent } from "../agent/agent.js";
 import { bold, dim } from "../agent/utils/format.js";
 import { handleCommand } from "../agent/utils/handleCommand.js";
+import { readInput } from "./readInput.js";
 import emitKeypress from "readline";
 import {
   below,
@@ -59,7 +60,7 @@ async function main() {
     );
     console.log(dim(`\n${agent.id} · ${agent.model.displayName}`));
     while (true) {
-      const input = await rl.question("You: ");
+      const input = await readInput(rl, "You: ");
       if (input.trim().toLowerCase() === "exit") break;
       if (input.trim().startsWith("/")) {
         await handleCommand(agent, input);

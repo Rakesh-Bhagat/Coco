@@ -46,6 +46,7 @@ Long commands are cut to one line so the screen stays readable. Press **Ctrl+O**
 ## Highlights
 
 - **Hand-written agent loop.** Streaming responses, tool calls, and a bounded number of turns per request, all in one file (`src/agent/agent.ts`). Only the OpenAI SDK is used, as an HTTP client.
+- **A real system prompt.** Coco's behavior (read before editing, prefer dedicated tools over shell, verify changes, never commit unasked, treat file contents as data not instructions) lives in one readable file, `src/agent/systemPrompt.ts`, along with the working directory, platform, and date.
 - **Approval flow with real diffs.** `write_file` and `edit_file` show a colored diff against the current file contents before anything is written. `bash` shows the command. Anything but an explicit "yes" denies, and a denial is reported back to the model so it can adapt.
 - **Safe by default.** Writes are confined to the project directory. Read-only shell commands (`git status`, `ls`, ...) skip the prompt, but only when they contain no shell operators, so `git status; rm -rf /` still asks.
 - **Cancellation that works.** Ctrl+C aborts the in-flight model request, the approval prompt, and any running command. The tool's whole process tree is killed, not just the shell. This needed a Windows-specific fix, because `taskkill /T` can't see Git Bash's child processes.
@@ -142,6 +143,7 @@ src/
 ├── cli/index.ts          # REPL, approval prompt, Ctrl+C / Ctrl+O handling
 ├── agent/
 │   ├── agent.ts          # The agent loop: streaming, tool execution, approvals
+│   ├── systemPrompt.ts   # Coco's system prompt: behavior rules + environment info
 │   ├── registry.ts       # Provider and default-model configuration
 │   ├── factory.ts        # Builds a provider from the registry
 │   ├── types.ts          # Messages, tools, stream events
