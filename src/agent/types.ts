@@ -8,7 +8,13 @@ export type JSONSchema = {
 
 export type ContentBlock =
   | { type: "text"; content: string }
-  | { type: "tool_use"; id: string; name: string; input: unknown }
+  | {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: unknown;
+      extra?: unknown;
+    }
   | { type: "tool_result"; toolCallId: string; output: unknown };
 
 export type Message = {
@@ -58,7 +64,7 @@ export type LLMRequest = {
 
 export type LLMResponse = {
   text: string;
-  toolCalls?: { id: string; name: string; input: unknown }[];
+  toolCalls?: { id: string; name: string; input: unknown; extra?: unknown }[];
   usage?: Usage;
   stopReason?: "end" | "tool_use" | "max_tokens" | "other" | undefined;
 };
@@ -71,7 +77,7 @@ export type Model = {
 export interface ProviderConfig {
   displayName: string;
   baseURL: string;
-  apiKeyEnv: string;
+  apiKeyEnv?: string;
   defaultModel: string;
   kind: "openai-compatible" | "anthropic";
   headers?: Record<string, string>;

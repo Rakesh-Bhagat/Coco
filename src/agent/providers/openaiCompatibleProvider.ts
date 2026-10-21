@@ -73,7 +73,7 @@ export class OpenAICompatibleLLM implements Provider {
     let usageCost: Usage | undefined;
     const pending = new Map<
       number,
-      { id: string; name: string; args: string }
+      { id: string; name: string; args: string; extra?: unknown }
     >();
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta.content;
@@ -91,6 +91,10 @@ export class OpenAICompatibleLLM implements Provider {
         }
         if (tc.function?.arguments) {
           cur.args += tc.function.arguments;
+        }
+        const extra = (tc as { extra_content?: unknown }).extra_content;
+        if (extra !== undefined) {
+          cur.extra = extra;
         }
         pending.set(tc.index, cur);
       }
@@ -113,7 +117,12 @@ export class OpenAICompatibleLLM implements Provider {
         } catch {
           input = { __parseError: c.args };
         }
-        return { id: c.id, name: c.name, input };
+        return {
+          id: c.id,
+          name: c.name,
+          input,
+          ...(c.extra !== undefined && { extra: c.extra }),
+        };
       });
 
     yield {

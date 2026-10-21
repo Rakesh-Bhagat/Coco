@@ -12,7 +12,7 @@ import {
   toggleExpand,
   track,
 } from "../agent/utils/toolDisplay.js";
-config();
+config({ path: new URL("../../.env", import.meta.url) });
 
 // ctrl+o expands / collapses the most recent tool call header
 emitKeypress.emitKeypressEvents(stdin);

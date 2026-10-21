@@ -24,6 +24,7 @@ export function toOpenAIMessages(
         id: string;
         type: "function";
         function: { name: string; arguments: string };
+        extra_content?: unknown;
       }[] = [];
       for (const block of msg.content) {
         if (block.type === "text") {
@@ -36,6 +37,7 @@ export function toOpenAIMessages(
               name: block.name,
               arguments: JSON.stringify(block.input),
             },
+            ...(block.extra !== undefined && { extra_content: block.extra }),
           });
         }
       }

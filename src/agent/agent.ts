@@ -13,7 +13,7 @@ import type {
 import { registry, type ProviderId } from "./registry.js";
 import { buildSystemPrompt } from "./systemPrompt.js";
 import { toolMap, tools } from "../tools/index.js";
-import { createMarkdownStreamer, render } from "markdansi";
+import { createMarkdownStreamer } from "markdansi";
 import { renderMarkdown } from "./utils/markdown.js";
 import { dim, fmt } from "./utils/format.js";
 import { below, end, showTool } from "./utils/toolDisplay.js";
@@ -119,6 +119,7 @@ export class Agent implements AgentInterface {
                   id: c.id,
                   name: c.name,
                   input: c.input,
+                  ...(c.extra !== undefined && { extra: c.extra }),
                 });
               }
             }
